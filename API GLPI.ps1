@@ -6,33 +6,16 @@
 # Historico de alteracoes:
 #
 
-$nome_requerente   = 'ninguem'
+$tipo_chamado      = 1  # 1=incidente;2=requisicao
+$categoria         = 1  # 1=ADS;2=Infra
+$nome_requerente   = '?'
 $nome_observador   = ''
 $nome_tecnico      = 'robert.koch'
-$titulo_chamado    = 'APP nao encerra OS com movto em mes fechado'
-$descricao_chamado = 'APP nao encerra OS com movto em mes jah fechado no estoque. Ex: OS 035468'
-<#$descricao_chamado = '(07:59) Gabriel Boniatti: Bom dia'
-$descricao_chamado += '(07:59) Gabriel Boniatti: Estou com problema no lançamento de fretes'
-$descricao_chamado += '(08:00) Gabriel Boniatti: depois da contabilização aparece essa mensagem'
-$descricao_chamado += '(08:00) Gabriel Boniatti: no conhecimentos saidas'
-$descricao_chamado += '(08:01) Robert Koch: bom dia'
-$descricao_chamado += '(08:03) Robert Koch: Ele está em final de arquivo, ou seja: procurou alguma coisa e não encontrou'
-$descricao_chamado += '(08:03) Robert Koch: Provavelmente vai perder esse conhecimento'
-$descricao_chamado += '(08:03) Gabriel Boniatti: eu cancelei e ele voltou'
-$descricao_chamado += '(08:04) Gabriel Boniatti: tá ainda lá para importar'
-$descricao_chamado += '(08:05) Robert Koch: Tem como lançar algum conhecimento manualmente?'
-$descricao_chamado += '(08:05) Robert Koch: Sem ser por essa tela'
-$descricao_chamado += '(08:05) Gabriel Boniatti: sim'
-$descricao_chamado += '(08:05) Gabriel Boniatti: fiz agora'
-$descricao_chamado += '(08:05) Gabriel Boniatti: deu certo, tudo normal'
-$descricao_chamado += '(08:07) Robert Koch: Atééé pode ter sido um caso isolado... faz mais 1 teste pfv, tenta com outro arquivo'
-$descricao_chamado += '(08:08) Gabriel Boniatti: tá'
-$descricao_chamado += '(08:10) Gabriel Boniatti: mesma mensagem'
-$descricao_chamado += '(08:16) Robert Koch: Vou tentar verificar'
-$descricao_chamado += '(08:17) Gabriel Boniatti: ok'
-#>
+$titulo_chamado    = 'Criar tela de consulta (HTML) de OS de manutencao'
+$descricao_chamado = 'Sugestao apenas criar link na coluna do numero da OS na tela wpnsolmanutencao'
+#$descricao_chamado += 'Executar a procedure SP_VISUALIZA_OS passando a filial e o número da OS, de forma semelhante à leitura de acessos de usuário que temos na tela wpnacessosdousuario'
 $prioridade        = 2  # 1=baixa;2=media
-
+$result_abertura_chamado = ''
 
 # Inicio de conexao ao GLPI
 $GLPI_api = "https://glpi.novaalianca.coop.br/apirest.php/"
@@ -70,6 +53,25 @@ $uri = "$($GLPI_api)search/networkequipment?criteria\[0\]\[link\]\=AND\&criteria
 Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
 #>
 
+<# pesquisa algumas coisas...
+$uri = "$($GLPI_api)search/ITILCategory"
+$categorias=Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
+$categorias
+
+$uri = "$($GLPI_api)search/location"
+$localizacoes=Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
+$categorias
+
+#Visualizar os campos disponíveis para itemtype Ticket (royalties para https://gist.github.com/ricardomaia/1b1e6c768d2d666fce1fe299113b05fb)
+$uri = "$($GLPI_api)listSearchOptions/Ticket"
+$campos_disponiveis_para_ticket=Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
+$campos_disponiveis_para_ticket
+
+$uri = "$($GLPI_api)search/Ticket.type"
+$tipos_ticket=Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
+$tipos_ticket
+
+#>
 # Encontra o ID do requerente, observador e tecnico
 $ID_requerente = ''
 if ($nome_requerente.Length -gt 0)
@@ -110,22 +112,20 @@ if ($nome_tecnico.Length -gt 0)
     $ID_tecnico = $usuarios.data.2
 }
 
-$ID_requerente
-$ID_observador
-$ID_tecnico
-
 # Grava novo ticket de chamado
 $uri = "$($GLPI_api)Ticket"
 $manifest = @{}
 $body = @{}
 
 # https://forum.glpi-project.org/viewtopic.php?id=280849
-# urgency: 1=baixa
 $manifest = @{
         input = @{
+            type = $tipo_chamado
+            itilcategories_id = $categoria
             name = $titulo_chamado
             content = $descricao_chamado
             urgency = $prioridade
+            locations_id = 1 # location_id = 1  # 1=entidade raiz (as subdivisoes ainda nao consegui identificar)
             _users_id_requester = $ID_requerente
             _users_id_observer = $ID_observador
             _users_id_assign = $ID_tecnico
@@ -133,12 +133,19 @@ $manifest = @{
         }
 }
 $body = $manifest | ConvertTo-Json -Compress    
-$body
-Invoke-RestMethod -Debug -Verbose -Method Post -Headers $headers -Body $body -Uri $uri
+#$body
+$result_abertura_chamado = Invoke-RestMethod -Debug -Verbose -Method Post -Headers $headers -Body $body -Uri $uri
 
-
+$result_abertura_chamado
 
 # Encerra sessao
 $uri = "$($GLPI_api)killSession"
 $body = @{}
 Invoke-RestMethod -Method Get -Headers $headers -Body $body -Uri $uri
+
+
+#if ($result_abertura_chamado.id.Length -gt 0)
+#{
+#    write-host 'https://glpi.novaalianca.coop.br/front/ticket.form.php?id='+$result_abertura_chamado.id
+#}
+
