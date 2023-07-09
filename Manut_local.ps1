@@ -11,6 +11,7 @@
 #                     - Remove do C: os arquivos SQL que nao estiverem mais na pasta origem.
 # 14/03/2023 - Robert - Testa se encontra a basta base dos objetos SQL no servidor antes de continuar.
 # 05/04/2023 - Robert - Criado tratamento para copiar scripts do SrvADM.
+# 25/05/2023 - Robert - Verifica se consegue acessar as pastas nos servidores antes de iniciar as comparacoes de arquivos.
 #
 
 # ---------------------------------------------------------------------------
@@ -108,42 +109,49 @@ do
 
     # Copia da rede os scripts do ServerADM, para manter atualizado no Github.
     $PastaNoServidor = "\\192.168.1.12\c$\util\scripts"
-    $PastaLocal = "C:\util\scripts_SrvADM"
-    VA_Log -TipoLog 'info' -MsgLog ('Verificando pasta ' + $PastaNoServidor + ' --> ' + $PastaLocal)
-    if (!(Test-Path -Path $PastaLocal))
+    if (!(Test-Path $PastaNoServidor))
     {
-	    New-Item -Force -ItemType Directory -Path $PastaLocal -verbose
+        VA_Log -TipoLog 'erro' -MsgLog ('Pasta base scripts inacessivel: ' + $PastaNoServidor)
     }
-    # Copia arquivos que tiverem conteudo diferente na pasta origem (royalties para https://adamtheautomator.com/get-filehash/)
-    foreach($arq in Get-ChildItem $PastaNoServidor\*.ps1)
+    else
     {
-        # Se o arquivo nao existe na pasta destino, nem preciso perder tempo em testar diferencas.
-        if (Test-Path ($PastaLocal + '\' + $Arq.Name))
+
+        $PastaLocal = "C:\util\scripts_SrvADM"
+        VA_Log -TipoLog 'info' -MsgLog ('Verificando pasta ' + $PastaNoServidor + ' --> ' + $PastaLocal)
+        if (!(Test-Path -Path $PastaLocal))
         {
-            VA_Log -TipoLog 'debug' -MsgLog ('Verificando novidades em ' + $Arq.FullName)
-            if ((Get-FileHash $arq.FullName).Hash -ne (Get-FileHash ($PastaLocal + '\' + $Arq.Name)).Hash)
+	        New-Item -Force -ItemType Directory -Path $PastaLocal -verbose
+        }
+        # Copia arquivos que tiverem conteudo diferente na pasta origem (royalties para https://adamtheautomator.com/get-filehash/)
+        foreach($arq in Get-ChildItem $PastaNoServidor\*.ps1)
+        {
+            # Se o arquivo nao existe na pasta destino, nem preciso perder tempo em testar diferencas.
+            if (Test-Path ($PastaLocal + '\' + $Arq.Name))
             {
-                VA_Log -TipoLog 'debug' -MsgLog 'Hash diferente! Copiando arquivo'
+                VA_Log -TipoLog 'debug' -MsgLog ('Verificando novidades em ' + $Arq.FullName)
+                if ((Get-FileHash $arq.FullName).Hash -ne (Get-FileHash ($PastaLocal + '\' + $Arq.Name)).Hash)
+                {
+                    VA_Log -TipoLog 'debug' -MsgLog 'Hash diferente! Copiando arquivo'
+                    Copy-Item $arq.FullName $PastaLocal -verbose
+                }
+            }
+            else
+            {
+                VA_Log -TipoLog 'debug' -MsgLog ('Copiando arquivo novo ' + $Arq.FullName)
                 Copy-Item $arq.FullName $PastaLocal -verbose
             }
         }
-        else
+        # Apaga da pasta destino os arquivos que nao existirem na pasta origem
+        VA_Log -TipoLog 'debug' -MsgLog 'Verificando arquivos do SQL que nao existem mais na origem'
+        foreach($arq in Get-ChildItem $PastaLocal\*.sql)
         {
-            VA_Log -TipoLog 'debug' -MsgLog ('Copiando arquivo novo ' + $Arq.FullName)
-            Copy-Item $arq.FullName $PastaLocal -verbose
+            if ((Test-Path ($PastaNoServidor + '\' + $Arq.Name)) -eq $False)
+            {
+                VA_Log -TipoLog 'debug' -MsgLog ('Arquivo nao existe na pasta origem: ' + $Arq.Name)
+                Remove-Item $Arq.FullName -verbose
+            }
         }
     }
-    # Apaga da pasta destino os arquivos que nao existirem na pasta origem
-    VA_Log -TipoLog 'debug' -MsgLog 'Verificando arquivos do SQL que nao existem mais na origem'
-    foreach($arq in Get-ChildItem $PastaLocal\*.sql)
-    {
-        if ((Test-Path ($PastaNoServidor + '\' + $Arq.Name)) -eq $False)
-        {
-            VA_Log -TipoLog 'debug' -MsgLog ('Arquivo nao existe na pasta origem: ' + $Arq.Name)
-            Remove-Item $Arq.FullName -verbose
-        }
-    }
-
 
 
     # Copia backups de anotações do CintaNotes do C: para a rede

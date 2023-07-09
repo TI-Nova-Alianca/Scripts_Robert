@@ -7,15 +7,16 @@
 #
 
 $tipo_chamado      = 1  # 1=incidente;2=requisicao
-$categoria         = 1  # 1=ADS;2=Infra
-$nome_requerente   = '?'
+$categoria         = 1 #1-ADS > Protheus'  # 1=ADS;2=Infra
+$nome_requerente   = '? adriano.salvador'
 $nome_observador   = ''
 $nome_tecnico      = 'robert.koch'
-$titulo_chamado    = 'Criar tela de consulta (HTML) de OS de manutencao'
-$descricao_chamado = 'Sugestao apenas criar link na coluna do numero da OS na tela wpnsolmanutencao'
-#$descricao_chamado += 'Executar a procedure SP_VISUALIZA_OS passando a filial e o número da OS, de forma semelhante à leitura de acessos de usuário que temos na tela wpnacessosdousuario'
+$titulo_chamado    = 'Ajustar sequencial numeracao OP'
+$descricao_chamado = 'Ajustar sequencial numeracao OP (perdeu-se apos desligamento do servidor)'
 $prioridade        = 2  # 1=baixa;2=media
 $result_abertura_chamado = ''
+$encerrar_agora    = 'N'
+
 
 # Inicio de conexao ao GLPI
 $GLPI_api = "https://glpi.novaalianca.coop.br/apirest.php/"
@@ -60,7 +61,7 @@ $categorias
 
 $uri = "$($GLPI_api)search/location"
 $localizacoes=Invoke-RestMethod -Method Get -Headers $headers -Uri $uri
-$categorias
+$localizacoes
 
 #Visualizar os campos disponíveis para itemtype Ticket (royalties para https://gist.github.com/ricardomaia/1b1e6c768d2d666fce1fe299113b05fb)
 $uri = "$($GLPI_api)listSearchOptions/Ticket"
@@ -138,14 +139,20 @@ $result_abertura_chamado = Invoke-RestMethod -Debug -Verbose -Method Post -Heade
 
 $result_abertura_chamado
 
+if ($encerrar_agora -eq 'S')
+{
+    
+}
+
 # Encerra sessao
 $uri = "$($GLPI_api)killSession"
 $body = @{}
 Invoke-RestMethod -Method Get -Headers $headers -Body $body -Uri $uri
 
 
-#if ($result_abertura_chamado.id.Length -gt 0)
-#{
-#    write-host 'https://glpi.novaalianca.coop.br/front/ticket.form.php?id='+$result_abertura_chamado.id
-#}
+if ($result_abertura_chamado.id.Length -gt 0)
+{
+    $link = 'https://glpi.novaalianca.coop.br/front/ticket.form.php?id='+($result_abertura_chamado.id).ToString()
+    & C:\Users\robert.koch\AppData\Local\Programs\Opera\launcher.exe $link
+}
 
