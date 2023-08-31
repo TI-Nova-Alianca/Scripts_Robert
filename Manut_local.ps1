@@ -12,6 +12,8 @@
 # 14/03/2023 - Robert - Testa se encontra a basta base dos objetos SQL no servidor antes de continuar.
 # 05/04/2023 - Robert - Criado tratamento para copiar scripts do SrvADM.
 # 25/05/2023 - Robert - Verifica se consegue acessar as pastas nos servidores antes de iniciar as comparacoes de arquivos.
+# 20/07/2023 - Robert - Nao roda mais em loop
+#                     - Verifica se jah tem backup recente dos fontes do Protheus antes de gerar um novo.
 #
 
 # ---------------------------------------------------------------------------
@@ -22,19 +24,18 @@
 # ---------------------------------------------------------------------------
 VA_Log -TipoLog 'info' -MsgLog 'Iniciando execucao'
 
-# Processamento em loop por tempo indeterminado.
-$contadorDeLoops = 1
-do
-{
+## Processamento em loop por tempo indeterminado.
+#$contadorDeLoops = 1
+#do
+#{
 
     # Executa Spark, caso ainda nao esteja rodando.
-    # Parece que nao funciona por estar rodando sem interface com o ususario.
-#    VA_Log -TipoLog 'debug' -MsgLog 'testando spark'
-#    if (@(get-process -name *spark*).Length -eq 0)
-#    {
-#        VA_Log -TipoLog 'debug' -MsgLog 'vou executar spark'
-#        &"C:\Program Files (x86)\Spark\Spark.exe"
-#    }
+    VA_Log -TipoLog 'debug' -MsgLog 'testando spark'
+    if (@(get-process -name *spark*).Length -eq 0)
+    {
+        VA_Log -TipoLog 'debug' -MsgLog 'vou executar spark'
+        &"C:\Program Files (x86)\Spark\Spark.exe"
+    }
 
 
     # Copia da rede as definicoes de objetos do SQL, para manter atualizado no Github.
@@ -168,17 +169,21 @@ do
 
 
     # Backup pasta local fontes Protheus
-    VA_Log -TipoLog 'info' -MsgLog ('Iniciando backup FontesProtheus')
+    VA_Log -TipoLog 'info' -MsgLog ('Verificando se precisa fazer backup FontesProtheus')
     $PastaBackups = 'C:\Backups'
     if (!(Test-Path -Path $PastaBackups))
     {
 	    New-Item -Force -ItemType Directory -Path $PastaBackups
     }
-    & $Compactador a -r -tzip $PastaBackups\Fontes_locais_Protheus_$DataHora C:\FontesProtheus\FontesProtheus\*.*
+    if ((gci $PastaBackups\Fontes_locais_Protheus_* | Where-Object { $_.CreationTime -ge (get-date).AddHours(-6)}).count -eq 0)
+    {
+        VA_Log -TipoLog 'info' -MsgLog ('Nao tem backup recente da pasta FontesProtheus. Vou zipar.')
+        & $Compactador a -r -tzip $PastaBackups\Fontes_locais_Protheus_$DataHora C:\FontesProtheus\FontesProtheus\*.*
+    }
 
 
-    VA_Log -TipoLog 'info' -MsgLog ('Iteracao numero ' + $contadorDeLoops + ' finalizada. Aguardando nova execucao...')
-    Start-Sleep (60 * 60) # a cada hora estah mais que bom
-    $contadorDeLoops ++
-} while (1 -eq 1)
+#    VA_Log -TipoLog 'info' -MsgLog ('Iteracao numero ' + $contadorDeLoops + ' finalizada. Aguardando nova execucao...')
+#    Start-Sleep (60 * 60) # a cada hora estah mais que bom
+#    $contadorDeLoops ++
+#} while (1 -eq 1)
 
