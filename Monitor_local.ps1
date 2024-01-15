@@ -76,7 +76,7 @@ if ($posso_verificar_protheus -eq 1)
     # Verificar se as portas respondem
     if ($posso_verificar_protheus -eq 1)
     {
-      #  $LogProtheus = Get-Content ($ArqLogMonProheus) -last 50 
+      #  $LogProtheus = Get-Content ($ArqLogMonProtheus) -last 50 
         $PortasProtheus = @('1290') # master
         $PortasProtheus += '1291' # slave1
         $PortasProtheus += '1292' # slave2
@@ -91,10 +91,10 @@ if ($posso_verificar_protheus -eq 1)
         $PortasProtheus += '1248' # broker
         $PortasProtheus += '1268' # Schedule
         $PortasProtheus += '1274' # Importador XML
-      #  $PortasProtheus += '1276' # WS TotvsPDV
-      #  $PortasProtheus += '1277' # WS TotvsPDV base teste
+        $PortasProtheus += '1276' # WS Alianca filial 01_slave1
+        $PortasProtheus += '1277' # WS Alianca filial 01_slave2
         $PortasProtheus += '1283' # Job CancNFe e cupom
-        $PortasProtheus += '1251' # WS Alianca 1
+        $PortasProtheus += '1251' # WS Alianca filiais
         $PortasProtheus += '1252' # WS Alianca 2
         $PortasProtheus += '1253' # Telnet
         $PortasProtheus += '1260' # Monitor geral
