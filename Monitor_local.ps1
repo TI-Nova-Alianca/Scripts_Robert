@@ -91,11 +91,11 @@ if ($posso_verificar_protheus -eq 1)
         $PortasProtheus += '1248' # broker
         $PortasProtheus += '1268' # Schedule
         $PortasProtheus += '1274' # Importador XML
-        $PortasProtheus += '1276' # WS Alianca filial 01_slave1
-        $PortasProtheus += '1277' # WS Alianca filial 01_slave2
-        $PortasProtheus += '1283' # Job CancNFe e cupom
-        $PortasProtheus += '1251' # WS Alianca filiais
-        $PortasProtheus += '1252' # WS Alianca 2
+      # nao rolou...  $PortasProtheus += '1276' # WS Alianca filial 01_slave1
+      # nao rolou...  $PortasProtheus += '1277' # WS Alianca filial 01_slave2
+      #achamos que nao precisa mais...  $PortasProtheus += '1283' # Job CancNFe e cupom
+        $PortasProtheus += '1251' # WS Alianca1 (balanceamento de carga)
+        $PortasProtheus += '1252' # WS Alianca2 (balanceamento de carga)
         $PortasProtheus += '1253' # Telnet
         $PortasProtheus += '1260' # Monitor geral
         $PortasProtheus += '1264' # TAF

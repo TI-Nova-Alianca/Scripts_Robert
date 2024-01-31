@@ -9,13 +9,20 @@
 # 05/02/2021 - Robert - Definido timeout de 5 minutos para a camada de SP_EXPORTA_TABELAS_MEDICOES_CARGAS_PARA_SERVIDOR
 # 15/01/2024 - Robert - Pequena melhoria no controle de loops.
 #                     - Passa a safra como parametro para a procedure SP_GERA_TABELA_MEDICAO_CONTINUA
-# 18/01/2024 - Robert - Incluisa chamada da procedure SP_SINCRONIZA_ZZA
+# 18/01/2024 - Robert - Incluida chamada da procedure SP_SINCRONIZA_ZZA
+# 24/01/2024 - Robert - Passa a operar com ZZA010 em SQL local. Melhorias sincronizacao.
+# 26/01/2024 - Robert - Acrescentado $ErrorActionPreference = "Continue" para nao cair fora do loop em caso de erro/timeout
 #
 
 $safra = '2024'
 $filial = '01'
 
 $continua = 1
+
+# Tive problemas com o script parando por timeout em alguma sincronizacao. Quero que,
+# mesmo assim, a execucao continue no proximo loop.
+#$ErrorActionPreference = "SilentlyContinue"
+$ErrorActionPreference = "Continue"  # Mostra o erro, mas continua.
 
 # Faz conexao com o banco de dados SQL desta mesma estacao
 if ($continua -eq 1)
@@ -63,7 +70,7 @@ do
         $query = 'exec SP_SINCRONIZA_ZZA ''' + $filial + ''', ''' + $safra + ''''
         Write-Host $query
         $cmd = new-object System.Data.SqlClient.SqlCommand($query, $ConnSQLExpr);
-        $cmd.CommandTimeout = 60  # Nao deve demorar, mas preciso desta sincronizacao se quiser operar localmente.
+        $cmd.CommandTimeout = 30  # Nao deve demorar, mas preciso desta sincronizacao se quiser operar localmente.
         $exec = $cmd.ExecuteNonQuery()
         #write-host $exec
         if ($exec -lt 0)
@@ -81,6 +88,7 @@ do
         $query = 'exec SP_GERA_TABELA_MEDICAO_CONTINUA ''' + $filial + ''', ''' + $safra + ''''
         Write-Host $query
         $cmd = new-object System.Data.SqlClient.SqlCommand($query, $ConnSQLExpr);
+        $cmd.CommandTimeout = 40
         $exec = $cmd.ExecuteNonQuery()
         #write-host $exec
         if ($exec -eq 0)
@@ -96,6 +104,7 @@ do
         $query = 'exec SP_EXPORTA_TABELA_MEDICAO_CONTINUA_PARA_SERVIDOR'
         Write-Host $query
         $cmd = new-object System.Data.SqlClient.SqlCommand($query, $ConnSQLExpr);
+        $cmd.CommandTimeout = 60
         $exec = $cmd.ExecuteNonQuery()
         if ($exec -lt 0)
         {
@@ -111,7 +120,6 @@ do
     #
     # Como as tabelas do Access sao atualizadas somente no final da descarga, nao tem necessidade
     # de releituras tao frequentes. Vou ler a cada 5 iteracoes.
-#    if ($contadorDeLoops % 5 -eq 0)
     if ($continua -eq 1 -and $contadorDeLoops % 5 -eq 0)
     {
         #
@@ -214,7 +222,7 @@ do
         $query = 'exec SP_EXPORTA_TABELAS_MEDICOES_CARGAS_PARA_SERVIDOR'
         Write-Host $query
         $cmd = new-object System.Data.SqlClient.SqlCommand($query, $ConnSQLExpr);
-        $cmd.CommandTimeout = 300  # Pode demorar bastante, por exemplo se ficou tempo sem executar e tem muitas cargas pendentes
+        $cmd.CommandTimeout = 60  # Pode demorar bastante, por exemplo se ficou tempo sem executar e tem muitas cargas pendentes
         $exec = $cmd.ExecuteNonQuery()
     }
 
@@ -223,7 +231,8 @@ do
     if ($continua -eq 1)
     {
         Write-host (get-date).ToString('T') 'aguardando nova execucao...'
-        Start-Sleep (10)
+        #Start-Sleep (10)
+        Start-Sleep (20)
     }
     else
     {
